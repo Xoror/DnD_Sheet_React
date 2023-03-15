@@ -158,18 +158,6 @@ export const AppReducer = (state, action) => {
 			return {
 				...state,
 			}
-		case 'ADD_RESOURCE':
-			action.type= "Done";
-			state.resources.push(action.payload)
-			return {
-				...state,
-				/*
-				resources: [
-					...state.resources,
-					action.payload,
-				]
-				*/
-			}
 		case 'ADD_MISCPROFICIENCY':
 			action.type = 'Done';
 			if(action.payload[1].__isNew__ === true) {
@@ -182,7 +170,19 @@ export const AppReducer = (state, action) => {
 			return{
 				...state,
 			}
-		case 'CHANGE_RESOURCE':
+		case 'ADD_RESOURCE':
+			action.type= "Done";
+			state.resources.push(action.payload)
+			return {
+				...state,
+				/*
+				resources: [
+					...state.resources,
+					action.payload,
+				]
+				*/
+			}
+		case 'EDIT_RESOURCE':
 			action.type= 'Done';
 			if(action.payload[2] === "maximum") {
 				state.resources.filter((resource) => {return resource.name === action.payload[0]})[0].maximum = action.payload[1]
@@ -248,6 +248,26 @@ export const AppReducer = (state, action) => {
 			return {
 				...state,
 			}
+		case 'EDIT_ACTION':
+			action.type = 'Done'
+			if(action.id === "Actions") {
+				let testIndex = state.actions.indexOf(state.actions.filter(test => {return action.payload.name === test.name})[0])
+				state.actions[testIndex] = action.payload
+			}
+			else if(action.id === "Spells") {
+				let slots = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]
+				let test1 = slots.indexOf(action.payload.type)
+				let test2 = slots.indexOf(state.casting.highestSpellSlot)
+				if(test1 > test2) {
+					state.casting.highestSpellSlot = action.payload.type
+				}
+				
+				let testIndex = state.spells.indexOf(state.spells.filter(test => {return action.payload.name === test.name})[0])
+				state.spells[testIndex] = action.payload
+			}
+			return {
+				...state,
+			}
 		case "SPELL_PREPARATION":
 			action.type = "Done"
 			if(action.payload[1]) {
@@ -308,9 +328,7 @@ export const AppReducer = (state, action) => {
 				let index = state.actions.indexOf(test)
 				
 				let bla = structuredClone(state.actions)
-				state.actions = bla.actions.slice(0, index).concat(bla.slice(index + 1))
-				console.log(state.actions)
-				
+				state.actions = bla.slice(0, index).concat(bla.slice(index + 1))		
 			}
 			else if(action.id === "Spells") {
 				let test = state.spells.filter((action1) => {return action1.type === action.payload[0]})[action.payload[1]]
@@ -345,6 +363,7 @@ export const AppReducer = (state, action) => {
 			return {
 				...state,
 			}
+			
 		case 'CASTING_ATTRIBUTE_CHANGE':
 			action.type = "Done";
 			state.casting.spellAttribute = action.payload
@@ -369,19 +388,43 @@ export const AppReducer = (state, action) => {
 			return {
 				...state,
 			}
+			
 		case 'ADD_ITEM':
 			action.type = "Done"
 			state.inventory.push(action.payload)
-			console.log(action.payload)
 			return {
 				...state,
 			}
+		case 'EDIT_ITEM':
+			let testItemIndex = state.inventory.indexOf(state.inventory.filter(test => {return action.payload.name === test.name})[0])
+			state.inventory[testItemIndex] = action.payload
+			return {
+				...state,
+			}
+		case 'DELETE_ITEM':
+			action.type = "Done"
+			let testItem = state.inventory.filter((action1) => {return action1.type === action.payload[0]})[action.payload[1]]
+			let index = state.inventory.indexOf(testItem)
+			
+			let inventoryClone = structuredClone(state.inventory)
+			state.inventory = inventoryClone.slice(0, index).concat(inventoryClone.slice(index + 1))	
+			return {
+				...state,
+			}
+		case 'EQUIPPING_ITEM':
+			let testEquipIndex = state.inventory.indexOf(state.inventory.filter(test => {return action.payload.name === test.name})[0])
+			state.inventory[testEquipIndex].isEquipped = action.checked
+			return {
+				...state,
+			}
+			
 		case 'CHANGE_NOTES':
 			action.type = "Done";
 			state.notes = action.payload
 			return {
 				...state,
 			}
+			
 		case 'BUILD_SPELLLIST':
 			action.type = "Done";
 			if(state.sortedSpellList.length === 0) {
@@ -555,7 +598,7 @@ export const AppProvider = (props) => {
 		}
 		skill.bonus = state.charAttributes.filter((attribute) => {return attribute.name === skill.supSkill})[0].bonus + modifier
 	}
-
+	
 	return (
 		<AppContext.Provider
 			value={{

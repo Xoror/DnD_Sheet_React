@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef } from 'react';
 
 import CreatableSelect from 'react-select/creatable';
 import Button from 'react-bootstrap/Button';
@@ -15,6 +15,9 @@ import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import Collapse from 'react-bootstrap/Collapse';
+import Overlay from 'react-bootstrap/Overlay';
+import Tooltip from 'react-bootstrap/Tooltip';
+
 import { AiFillCloseSquare } from "react-icons/ai";
 import { RiFileEditFill } from "react-icons/ri";
 
@@ -27,8 +30,18 @@ import "./MainBody.css";
 //Features, Actions, Spells etc
 
 const Features = () => {
-	const {casting, actions, spells} = useContext(AppContext)
+	const {dispatch, casting, actions, spells, charClass} = useContext(AppContext)
 	const [radioValue, setRadioValue] = useState('0');
+	
+	const handleSwitch = (event) => {
+		setRadioValue(event.target.value)
+		if(event.target.value === "2") {
+			dispatch({
+				type: 'BUILD_SPELLLIST',
+				payload: charClass
+			})
+		}
+	}
 	
 	const radios = [
     { name: "Features", value: "0" },
@@ -37,6 +50,7 @@ const Features = () => {
     { name: "Inventory", value: "3" },
 	{ name: "Notes", vlaue: "4" },
 	];
+
 	const headersActions = ["Action", "Bonus Action", "Reaction", "Special"];
 	const listSlots = ["Cantrip","1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]
 	const headersSpells = listSlots.slice(0,listSlots.indexOf(casting.highestSpellSlot)+1)
@@ -56,7 +70,7 @@ const Features = () => {
 						name="radio"
 						value={radio.value}
 						checked={radioValue === radio.value}
-						onChange={(e) => setRadioValue(e.currentTarget.value)}
+						onChange={handleSwitch}
 						>
 							{radio.name}
 						</ToggleButton>
@@ -235,66 +249,107 @@ const FeatureBox = (props) => {
 //Actions, Bonus Actions, Reactions etc
 
 const Actions = (props) => {
-	const {dispatch} = useContext(AppContext);
+	const {dispatch, actions, sortedSpellList} = useContext(AppContext);
+	const [defaultValues, setDefaultValues] = useState({})
+	const [editing, setEditing] = useState(false)
+
+	
+	const [show, setShow] = useState(false);
+	const target = useRef(null);
+	//could maybe be more efficient?
 	const handleSubmit = (event) => {
-		event.preventDefault();
-		var data = {}
-		if (props.id === "Spells") {
-			data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-						scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
+		event.preventDefault()
+		if(editing) {
+			var data = {}
+			if (props.id === "Spells") {
+				data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+							scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
+			}
+			else {
+				data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+							scaling: event.target[4].value, isProficient: event.target[5].value, damageType: event.target[6].value};
+			}
+			dispatch({
+				type: 'EDIT_ACTION',
+				payload: data,
+				id: props.id
+			})
+			setEditing(false)
 		}
 		else {
-			data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-						scaling: event.target[4].value, isProficient: event.target[5].value, damageType: event.target[6].value};
+			if(actions.filter(action => {return action.name === event.target[0].value}).length != 0 || sortedSpellList.filter(action => {return action.name === event.target[0].value}).length != 0) {
+				event.stopPropagation()
+				setShow(true)
+			}
+			else {
+				var data = {}
+				if (props.id === "Spells") {
+					data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+								scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
+				}
+				else {
+					data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+								scaling: event.target[4].value, isProficient: event.target[5].value === "true" ? true:false, damageType: event.target[6].value};
+				}
+				dispatch({
+					type: 'ADD_ACTION',
+					payload: data,
+					id: props.id
+				})
+			}
 		}
-		dispatch({
-			type: 'ADD_ACTION',
-			payload: data,
-			id: props.id
-		})
+		setDefaultValues({})
 	}
+
 	
 	return (
 		<Card bg="secondary" id="ActionsPart">
 			{props.spells ? <SpellList /> : "" }
 			{props.headers.map((header, index) => (
-				<ActionTable offCanvas={props.offCanvas} id={props.id} key={index} header={header} bodies={props.actions.filter((action) => {return action.type === header})} spells={props.spells}/>
+				<ActionTable setEditing={setEditing} passState={setDefaultValues} offCanvas={props.offCanvas} id={props.id} key={index} header={header} bodies={props.actions.filter((action) => {return action.type === header})} spells={props.spells}/>
 			))}
-
+			<InputGroup.Text> {editing ? ("Currently editing: " + defaultValues.name) : (props.spells ? "Add New Spell" : "Add New Action/Bonus Action/etc:") } </InputGroup.Text>
 			<Form onSubmit={handleSubmit}>
 				<InputGroup>
-					<Form.Control placeholder="Name" aria-label="Name" aria-describedby="name"/>
-					<Form.Control placeholder="Range" aria-label="Range" aria-describedby="range"/>
-					<Form.Control placeholder="Damage" aria-label="damage-dice" aria-describedby="damage-dice"/>
+					
+						<Form.Control ref={target} required defaultValue={defaultValues.name} placeholder="Name" aria-label="Name" aria-describedby="name"/>
+						<Overlay target={target.current} show={show} placement="top">
+						  <Tooltip id="overlay-example">
+								Please enter unique Name.
+						  </Tooltip>
+						</Overlay>
+					
+					<Form.Control required defaultValue={defaultValues.range} placeholder="Range" aria-label="Range" aria-describedby="range"/>
+					<Form.Control required defaultValue={defaultValues.damage} placeholder="Damage" aria-label="damage-dice" aria-describedby="damage-dice"/>
 				</InputGroup>
 				<InputGroup>
-					<Form.Select aria-label="action-type-select">
-						{props.id === "Actions" ? <option key="0">Choose Action Type</option>:<option key="0">Choose Spell Slot</option>}
+					<Form.Select required value={defaultValues.type} aria-label="action-type-select">
+						{props.id === "Actions" ? <option key="0" value="">Choose Action Type</option>:<option key="0" value="">Choose Spell Slot</option>}
 						{props.options.map((option1, index) => 
 							<option key={index} value={option1}>{option1}</option>
 						)}
 					</Form.Select>
-					<Form.Select aria-label="scaling-attribute">
-						<option>Choose Scaling Attribute</option>
+					<Form.Select required value={defaultValues.scaling} aria-label="scaling-attribute">
+						<option value="">Choose Scaling Attribute</option>
 						<option value="Strength">Strength</option>
 						<option value="Dexterity">Dexterity</option>
 						<option value="Constitution">Constitution</option>
 						<option value="Intelligence">Intelligence</option>
 						<option value="Wisdom">Wisdom</option>
 						<option value="Charisma">Charisma</option>
-						<option value="Charisma">None</option>
+						<option value="None">None</option>
 					</Form.Select>
 				</InputGroup>
 				<InputGroup>
 					{props.spells ? 
 					""
-					: <Form.Select aria-label="is-proficient">
-						<option>Is proficient?</option>
+					: <Form.Select required value={defaultValues.isProficient} type="boolean" aria-label="is-proficient">
+						<option value="">Is proficient?</option>
 						<option value={true}>Yes</option>
 						<option value={false}>No</option>
 					</Form.Select> }
-					<Form.Select aria-label="damage-type">
-						<option>Choose Damage Type</option>
+					<Form.Select required value={defaultValues.damageType} aria-label="damage-type">
+						<option >Choose Damage Type</option>
 						<option value="Bludgeoning">Bludgeoning</option>
 						<option value="Slashing">Slashing</option>
 						<option value="Piercing">Piercing</option>
@@ -339,9 +394,12 @@ const ActionTable = (props) => {
 			payload: [event.target.id, event.target.checked],
 			offCanvas: props.offCanvas,
 		})
-		console.log(props.offCanvas)
 	}
-
+	const startEdit = (event, body) => {
+		console.log(body)
+		props.passState(body)
+		props.setEditing(true)
+	}
 	return (
 		<div key={props.index} style={{marginLeft:"8px", marginRight:"8px"}}>
 			<h5> {props.header} {props.spells ? (props.header === "Cantrip" ? "": "Level") :""} </h5>
@@ -365,9 +423,12 @@ const ActionTable = (props) => {
 								</td> : ""}
 							<td>{body.name}</td>
 							{props.spells ? "" : <td>{body.isProficient ? proficiency.value + scalingBonus(body.scaling) : 0 + scalingBonus(body.scaling)} </td>}
-							{props.spells ? "" : <td>{body.damage} + {scalingBonus(body.scaling)} </td>}
+							{props.spells ? "" : <td>{body.damage} + {scalingBonus(body.scaling)} ({body.damageType}) </td>}
 							<td>{body.range}</td>
-							<td> <AiFillCloseSquare type="button" color="#dc3545" size="1.4em" style={{backgroundColor:"white"}} onClick={(event) => handleDelete(event, props.header, index)}/> </td>
+							<td style={{paddingRight:"0",paddingLeft:"0"}}> 
+								<RiFileEditFill type="button" color="black" size="23" id="edit-button" onClick={(event) => startEdit(event, body)} className="edit-button" />
+								<AiFillCloseSquare type="button" color="#dc3545" size="23" id="delete-button" onClick={(event) => handleDelete(event, props.header, index)} className="edit-button" style={{backgroundColor:"white", padding:"0px"}}/> 
+							</td>
 						</tr>
 					))}
 				</tbody>
@@ -383,10 +444,6 @@ const SpellList = (props) => {
 	const handleClose = () => setShow(false);
 	const handleShow = () => {
 		setShow(true);
-		dispatch({
-			type: 'BUILD_SPELLLIST',
-			payload: charClass
-		})
 	}
 	
 	
@@ -420,45 +477,57 @@ const SpellList = (props) => {
 //Inventory
 const Inventory = (props) => {
 	const {dispatch, inventory} = useContext(AppContext);
+	
+	const [editing, setEditing] = useState(false)
+	const [defaultValues, setDefaultValues] = useState({})
+	
 	const handleSubmit = (event) => {
 		event.preventDefault();
-		var data = {name: event.target[0].value, type: event.target[1].value, qty: event.target[2].value, worth: event.target[3].value, 
-						weight: event.target[4].value, isEquipped: false};
-		dispatch({
-			type: 'ADD_ITEM',
-			payload: data,
-		})
+		if(editing) {
+			var data = {name: event.target[0].value, type: event.target[1].value, qty: event.target[2].value, worth: event.target[3].value, 
+							weight: event.target[4].value, isEquipped: event.target[5].checked};
+			dispatch({
+				type: 'EDIT_ITEM',
+				payload: data,
+			})
+			setEditing(false)
+		}
+		else {
+			var data = {name: event.target[0].value, type: event.target[1].value, qty: event.target[2].value, worth: event.target[3].value, 
+							weight: event.target[4].value, isEquipped: event.target[5].value === "true" ? true:false};
+			dispatch({
+				type: 'ADD_ITEM',
+				payload: data,
+			})
+		}
+		setDefaultValues({})
 	}
 	
-	/*
-	{props.headers.map((header, index) => (
-				<ActionTable id={props.id} key={index} header={header} bodies={props.actions.filter((action) => {return action.type === header})} spells={props.spells}/>
-			))}
-	*/
 	const headers = ["Weapon", "Armor", "Misc"]
 	return (
 		<Card bg="secondary" id="Inventory">
 			{headers.map((header, index) => (
-				<InventoryTable key={index} header={header} bodies={inventory.filter((item) => {return item.type === header})}/>
+				<InventoryTable setEditing={setEditing} setDefaultValues={setDefaultValues} key={index} header={header} bodies={inventory.filter((item) => {return item.type === header})}/>
 			))}
+			<InputGroup.Text> {editing ? ("Currently editing: " + defaultValues.name) : "Add New Item" } </InputGroup.Text> 
 			<Form onSubmit={handleSubmit}>
 				<InputGroup>
-					<Form.Control required placeholder="Name" aria-label="Name" aria-describedby="name"/>
-					<Form.Select required aria-label="item-type-select">
-						<option>Choose Item Type</option>
+					<Form.Control defaultValue={defaultValues.name} required placeholder="Name" aria-label="Name" aria-describedby="name"/>
+					<Form.Select value={defaultValues.type} required aria-label="item-type-select">
+						<option value="">Choose Item Type</option>
 						<option value="Weapon">Weapon</option>
 						<option value="Armor">Armor</option>
 						<option value="Misc">Misc</option>
 					</Form.Select>
 				</InputGroup>
 				<InputGroup>
-					<Form.Control required type="number" min="0" placeholder="Qty" aria-label="Quantity" aria-describedby="quantity"/>
-					<Form.Control required placeholder="Worth" aria-label="worth" aria-describedby="worth"/>
-					<Form.Control required placeholder="Weight" aria-label="Weight" aria-describedby="Weight"/>
+					<Form.Control defaultValue={defaultValues.qty} required type="number" min="0" placeholder="Qty" aria-label="Quantity" aria-describedby="quantity"/>
+					<Form.Control defaultValue={defaultValues.worth} required placeholder="Worth" aria-label="worth" aria-describedby="worth"/>
+					<Form.Control defaultValue={defaultValues.weight} required placeholder="Weight" aria-label="Weight" aria-describedby="Weight"/>
 				</InputGroup>
 				<InputGroup>
-					<Form.Select required aria-label="is-wearing">
-						<option>Is wearing?</option>
+					<Form.Select type="boolean" value={defaultValues.isEquipped} required aria-label="is-wearing">
+						<option value="">Is wearing?</option>
 						<option value={true}>Yes</option>
 						<option value={false}>No</option>
 					</Form.Select>
@@ -470,25 +539,22 @@ const Inventory = (props) => {
 }
 const InventoryTable = (props) => {
 	const {dispatch, charAttributes, proficiency} = useContext(AppContext);
+	
 	const handleDelete = (event, type, index) => {
 		dispatch({
 			type: 'DELETE_ITEM',
 			payload: [type, index],
-			id: props.id
 		})
 	}
-	const handleEdit = (event, type, index) => {
-		dispatch({
-			type: 'EDIT_ITEM',
-			payload: [type, index],
-			id: props.id
-		})
+	const startEdit = (event, body) => {
+		props.setDefaultValues(body)
+		props.setEditing(true)
 	}
-	const handleEquipped = (event) => {
+	const handleEquipped = (event, body) => {
 		dispatch({
-			type: "EQUIPPING",
-			payload: [event.target.id, event.target.checked],
-			offCanvas: props.offCanvas,
+			type: 'EQUIPPING_ITEM',
+			payload: body,
+			checked: event.target.checked
 		})
 	}
 
@@ -510,7 +576,7 @@ const InventoryTable = (props) => {
 					{props.bodies.map( (body, index) => (
 						<tr key={index}>
 							<td className="prepared-check" style={{height:"1.5em", width:"1.5em"}}> 
-								<input type="checkbox" id={body.name} value="prepared"  onChange={handleEquipped} checked={body.isPrepared}></input>
+								<input type="checkbox" id={body.name} value="prepared"  onChange={(event) => handleEquipped(event, body)} checked={body.isEquipped}></input>
 							</td>
 							<td> {body.name} </td>
 							<td> {body.qty} </td>
@@ -518,8 +584,8 @@ const InventoryTable = (props) => {
 							<td> {body.worth} </td>
 							<td style={{ alignItems:"center" }}>
 								<div style={{float:"right", marginTop:"2.5px"}}>
-									<RiFileEditFill type="button" color="black" size="23" id="edit-button" /*onClick={startEdit}*/ className="edit-button" /> 
-									<AiFillCloseSquare type="button" color="#dc3545" size="23" id="delete-button" onClick={handleDelete} className="edit-button" style={{backgroundColor:"white", padding:"0px"}}/>
+									<RiFileEditFill type="button" color="black" size="23" id="edit-button" onClick={(event) => startEdit(event, body)} className="edit-button" /> 
+									<AiFillCloseSquare type="button" color="#dc3545" size="23" id="delete-button" onClick={(event) => handleDelete(event, body.type, index)} className="edit-button" style={{backgroundColor:"white", padding:"0px"}}/>
 								</div>
 							</td>
 						</tr>

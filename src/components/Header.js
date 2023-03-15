@@ -34,9 +34,9 @@ const NavBar = () => {
 		}
 		else {
 			let test1 = charName.split(" ")
-			test1.map(word => {
+			test1.map(word => (
 				test += word
-			})
+			))
 		}
 		downloadFile({
 			data: JSON.stringify(currentState, null, "\t"),

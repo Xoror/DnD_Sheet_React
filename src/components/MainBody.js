@@ -482,7 +482,7 @@ const ResourceBox = (props) => {
 	const {dispatch} = useContext(AppContext);
 	const changeResource = (event) => {
 		dispatch({
-			type:'CHANGE_RESOURCE',
+			type:'EDIT_RESOURCE',
 			payload: [event.target.name, event.target.value, event.target.id],
 		})
 	}
@@ -646,7 +646,7 @@ const ACModal = (props) => {
 			<InputGroup>
 				<InputGroup.Text id="armor-type"> Armor Type </InputGroup.Text>
 				<Form.Select required aria-label="choose-armor-type" aria-describedby="armor-type" onChange={handleShowOptions}>
-					<option value="0"> Choose Armor Type </option>
+					<option value=""> Choose Armor Type </option>
 					<option value="1" id="wearsArmor"> Equippable Armor </option>
 					<option value="2" id="unarmoredDefense"> Unarmored Defense </option>
 				</Form.Select>

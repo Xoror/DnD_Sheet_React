@@ -11,7 +11,7 @@ import AllocationForm from "./components/AllocationForm";
 import { CharacterName, MiscInfo, CharacterClass, NavBar } from "./components/Header";
 import { AppProvider } from "./context/AppContext";
 import { Attributes, MiscAttributes, ResourcesMiscProficiencies, SpellCard} from "./components/MainBody";
-import { Features, Actions} from "./components/3rdColumn";
+import { Features,} from "./components/3rdColumn";
 
 
 const App = () => {
