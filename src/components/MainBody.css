@@ -92,15 +92,15 @@
 /* Styling of the Skills column */
 .skills-layout {
 	/*styling of the text and bonus of the skills*/
-	padding-right: 4px;
-	padding-left: 4px;
+	padding-right: 0.25em;
+	padding-left: 0.25em;
 }
 
 /* Styling of the skills text */
 .skills-text {
 	padding: 0 10px;
 	position: relative;
-	bottom: 4px;
+	bottom: 0.25em;
 }
 
 /* Styling of the proficiency/expertise check boxes */
@@ -115,11 +115,11 @@
 	border: 0.15em solid #000000;
 	outline: none;
 	cursor: pointer;
-	margin-top: 4px;
+	margin-top: 0.25em;
 }
 .checkbox-wrapper input[id="Expertise"] {
-	margin-right: 4px;
-	margin-left: 8px;
+	margin-right: 0.25em;
+	margin-left: 0.5em;
 }
 .checkbox-wrapper input:checked {
 	background-color: #51585e;
@@ -135,8 +135,8 @@
 	font-size: 0.8em;
 	color: #ffffff;
 	position: absolute;
-	right: 4px;
-	top: -3.5px;
+	right: 0.33em;
+	top: -0.25em;
 	/*align-content: auto;*/
 }
 .checkbox-wrapper input[id="Expertise"]:checked::before {
@@ -144,8 +144,8 @@
 	font-size: 0.8em;
 	color: #ffffff;
 	position: absolute;
-	right: 4px;
-	top: -3.5px;
+	right: 0.33em;
+	top: -0.25em;
 	/*align-content: auto;*/
 }
 

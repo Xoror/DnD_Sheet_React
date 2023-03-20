@@ -22,7 +22,7 @@ const App = () => {
 			<div>
 				<NavBar/>
 			</div>
-			<Container fluid style={{color: '#ffffff', backgroundColor: '#704214', fontSize:'16px'}}>
+			<Container fluid style={{color: '#ffffff', backgroundColor: '#704214', fontSize:'16px', lineHeight:"1.4"}}>
 				<div className='row justify-content-md-center'>
 					<div className='col col-lg-3' style={{backgroundColor: 'green', display: "flex", justifyContent: "right", alignItems: "center"}}>
 						<CharacterName/>

@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from 'react';
+import React, { useContext, useState, useRef,} from 'react';
 
 import CreatableSelect from 'react-select/creatable';
 import Button from 'react-bootstrap/Button';
@@ -31,11 +31,11 @@ import "./MainBody.css";
 
 const Features = () => {
 	const {dispatch, casting, actions, spells, charClass} = useContext(AppContext)
-	const [radioValue, setRadioValue] = useState('0');
+	const [radioValue, setRadioValue] = useState("0");
 	
 	const handleSwitch = (event) => {
 		setRadioValue(event.target.value)
-		if(event.target.value === "2") {
+		if(event.currentTarget.value === "2") {
 			dispatch({
 				type: 'BUILD_SPELLLIST',
 				payload: charClass
@@ -48,7 +48,7 @@ const Features = () => {
     { name: "Actions", value: "1" },
 	{ name: "Spells", value: "2" },
     { name: "Inventory", value: "3" },
-	{ name: "Notes", vlaue: "4" },
+	{ name: "Notes", value: "4" },
 	];
 
 	const headersActions = ["Action", "Bonus Action", "Reaction", "Special"];
@@ -56,6 +56,7 @@ const Features = () => {
 	const headersSpells = listSlots.slice(0,listSlots.indexOf(casting.highestSpellSlot)+1)
 	const sections = [<FeaturesPart/>, <Actions actions={actions} id="Actions" options={headersActions} headers={headersActions}/>, 
 						<Actions offCanvas={false} actions={spells} id="Spells" options={listSlots} headers={headersSpells} spells={true}/>, <Inventory/>, <Notes/>]
+	
 	return (
 		<Card bg="secondary" border="dark">
 			<div>
@@ -78,7 +79,7 @@ const Features = () => {
 				</ButtonGroup>
 			</div>
 			<div>
-				{sections[radioValue]}
+				{sections[parseInt(radioValue)]}
 			</div>
 		</Card>
 	)
@@ -247,7 +248,12 @@ const FeatureBox = (props) => {
 };
 
 //Actions, Bonus Actions, Reactions etc
+const useFocus = () => {
+    const htmlElRef = useRef(null)
+    const setFocus = () => {htmlElRef.current &&  htmlElRef.current.focus()}
 
+    return [ htmlElRef, setFocus ] 
+}
 const Actions = (props) => {
 	const {dispatch, actions, sortedSpellList} = useContext(AppContext);
 	const [defaultValues, setDefaultValues] = useState({})
@@ -255,12 +261,14 @@ const Actions = (props) => {
 
 	
 	const [show, setShow] = useState(false);
-	const target = useRef(null);
+
+	const [inputRef, setInputFocus] = useFocus()
 	//could maybe be more efficient?
 	const handleSubmit = (event) => {
 		event.preventDefault()
 		if(editing) {
 			var data = {}
+			var oldData = structuredClone(defaultValues)
 			if (props.id === "Spells") {
 				data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
 							scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
@@ -272,14 +280,17 @@ const Actions = (props) => {
 			dispatch({
 				type: 'EDIT_ACTION',
 				payload: data,
+				previous: oldData,
 				id: props.id
 			})
 			setEditing(false)
+			
 		}
 		else {
 			if(actions.filter(action => {return action.name === event.target[0].value}).length != 0 || sortedSpellList.filter(action => {return action.name === event.target[0].value}).length != 0) {
 				event.stopPropagation()
 				setShow(true)
+				setInputFocus()
 			}
 			else {
 				var data = {}
@@ -294,13 +305,13 @@ const Actions = (props) => {
 				dispatch({
 					type: 'ADD_ACTION',
 					payload: data,
+					previous: oldData,
 					id: props.id
 				})
 			}
 		}
-		setDefaultValues({})
+		setDefaultValues({name: "", range: "", damage: "", type: "", scaling: "", isProficient: "", damageType: ""})
 	}
-
 	
 	return (
 		<Card bg="secondary" id="ActionsPart">
@@ -312,8 +323,8 @@ const Actions = (props) => {
 			<Form onSubmit={handleSubmit}>
 				<InputGroup>
 					
-						<Form.Control ref={target} required defaultValue={defaultValues.name} placeholder="Name" aria-label="Name" aria-describedby="name"/>
-						<Overlay target={target.current} show={show} placement="top">
+						<Form.Control ref={inputRef} required defaultValue={defaultValues.name} placeholder="Name" aria-label="Name" aria-describedby="name"/>
+						<Overlay target={inputRef.current} show={show} placement="top">
 						  <Tooltip id="overlay-example">
 								Please enter unique Name.
 						  </Tooltip>
@@ -349,7 +360,7 @@ const Actions = (props) => {
 						<option value={false}>No</option>
 					</Form.Select> }
 					<Form.Select required value={defaultValues.damageType} aria-label="damage-type">
-						<option >Choose Damage Type</option>
+						<option value="">Choose Damage Type</option>
 						<option value="Bludgeoning">Bludgeoning</option>
 						<option value="Slashing">Slashing</option>
 						<option value="Piercing">Piercing</option>
@@ -396,7 +407,6 @@ const ActionTable = (props) => {
 		})
 	}
 	const startEdit = (event, body) => {
-		console.log(body)
 		props.passState(body)
 		props.setEditing(true)
 	}
@@ -456,8 +466,8 @@ const SpellList = (props) => {
 	return(
 		<>
 			<span style={{justifyContent:"end", textAlign:"right"}}> testing</span>
-			<Button variant="primary" onClick={handleShow} className="me-2">
-				Launch
+			<Button variant="primary" onClick={handleShow} className="md-2">
+				Open Spell List
 			</Button>
 
 			<Offcanvas border="dark" style={{backgroundColor:"#6c757d"}} show={show} onHide={handleClose} placement="end" scroll="true">
@@ -483,12 +493,14 @@ const Inventory = (props) => {
 	
 	const handleSubmit = (event) => {
 		event.preventDefault();
+		var oldData = structuredClone(defaultValues)
 		if(editing) {
 			var data = {name: event.target[0].value, type: event.target[1].value, qty: event.target[2].value, worth: event.target[3].value, 
-							weight: event.target[4].value, isEquipped: event.target[5].checked};
+							weight: event.target[4].value, isEquipped: event.target[5].value === "true" ? true:false};
 			dispatch({
 				type: 'EDIT_ITEM',
 				payload: data,
+				previous: oldData
 			})
 			setEditing(false)
 		}
@@ -500,7 +512,7 @@ const Inventory = (props) => {
 				payload: data,
 			})
 		}
-		setDefaultValues({})
+		setDefaultValues({name: "", type: "", qty: "", worth: "", weight: "", isEquipped: ""})
 	}
 	
 	const headers = ["Weapon", "Armor", "Misc"]
@@ -609,7 +621,6 @@ const Notes = () => {
 		<Card bg="secondary">
 			<Card.Header> Any Notes </Card.Header>
 			<Card.Body>
-				<p> {notes} </p>
 				 <InputGroup>
 					<Form.Control as="textarea" value={notes} aria-label="With textarea" onChange={handleNotesChange}/>
 				</InputGroup>

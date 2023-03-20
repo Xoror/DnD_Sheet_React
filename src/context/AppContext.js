@@ -1,6 +1,14 @@
 import React, { createContext, useReducer } from 'react';
 import {spellList} from "../data/spells.js";
 
+var isEqualsJson = (obj1,obj2)=>{
+    let keys1 = Object.keys(obj1);
+    let keys2 = Object.keys(obj2);
+
+    //return true when the two json has same length and all the properties has same value key by key
+    return keys1.length === keys2.length && Object.keys(obj1).every(key=>obj1[key]==obj2[key]);
+}
+
 // 5. The reducer - this is used to update the state, based on the action
 export const AppReducer = (state, action) => {
 	switch (action.type) {
@@ -250,8 +258,8 @@ export const AppReducer = (state, action) => {
 			}
 		case 'EDIT_ACTION':
 			action.type = 'Done'
-			if(action.id === "Actions") {
-				let testIndex = state.actions.indexOf(state.actions.filter(test => {return action.payload.name === test.name})[0])
+			if(action.id === "Actions") {				
+				let testIndex = state.actions.indexOf(state.actions.filter(action1 => {return isEqualsJson(action1, action.previous)})[0])
 				state.actions[testIndex] = action.payload
 			}
 			else if(action.id === "Spells") {
@@ -262,7 +270,7 @@ export const AppReducer = (state, action) => {
 					state.casting.highestSpellSlot = action.payload.type
 				}
 				
-				let testIndex = state.spells.indexOf(state.spells.filter(test => {return action.payload.name === test.name})[0])
+				let testIndex = state.spells.indexOf(action.previous)
 				state.spells[testIndex] = action.payload
 			}
 			return {
@@ -334,6 +342,9 @@ export const AppReducer = (state, action) => {
 				let test = state.spells.filter((action1) => {return action1.type === action.payload[0]})[action.payload[1]]
 				let index = state.spells.indexOf(test)
 				
+				let test2 = state.sortedSpellList.filter(spell => {return spell.name === test.name})[0]
+				test2.isPrepared = false
+				
 				let bla = structuredClone(state.spells)
 				state.spells = bla.slice(0, index).concat(bla.slice(index + 1))
 				console.log(state.spells)
@@ -354,10 +365,6 @@ export const AppReducer = (state, action) => {
 						state.casting.highestSpellSlot = slots[i]
 						break
 					}
-				}
-				
-				return {
-					...state,
 				}
 			}
 			return {
@@ -396,7 +403,7 @@ export const AppReducer = (state, action) => {
 				...state,
 			}
 		case 'EDIT_ITEM':
-			let testItemIndex = state.inventory.indexOf(state.inventory.filter(test => {return action.payload.name === test.name})[0])
+			let testItemIndex = state.inventory.indexOf(state.inventory.filter(action1 => {return isEqualsJson(action1, action.previous)})[0])
 			state.inventory[testItemIndex] = action.payload
 			return {
 				...state,
@@ -470,11 +477,13 @@ export const AppReducer = (state, action) => {
 };
 
 // 1. Sets the initial state when the app loads
-const initialState = {
+const initialStateBasic = {
 	charLevel: 1,
 	charName: '',
 	charClass: '',
 	charSubclass: '',
+	weight: 0,
+	currency: {platinum: 0, electrum: 0, gold: 0, silver: 0, copper: 0},
 	charAC: {id: "AC", name: "AC", value: 10, baseAC: 10, scalingPrimary: "Dexterity", unarmoredDefense: true, scalingSecondary: "None", wearsArmor: false, maxBonus: 100, stealthDisadvantage: false},
 	proficiency: {id: "proficiency", name: "Proficiency", value: 2},
 	initiative: {id: "initiative", name: "Initiative", value: 0, scalingPrimary: "Dexterity", scalingSecondary: "None", flatBonus: 0 },
@@ -559,6 +568,16 @@ export const AppContext = createContext();
 // Accepts the children, which are the nested(wrapped) components
 export const AppProvider = (props) => {
 	// 4. Sets up the app state. takes a reducer, and an initial state
+	var initialState={}
+	
+	var testState = false//JSON.parse(sessionStorage.getItem('current-state')) || false
+	if(testState) {
+		initialState = testState
+	}
+	else {
+		initialState = initialStateBasic
+	}
+	
 	const [state, dispatch] = useReducer(AppReducer, initialState);
 
 	let ACtest = 0
@@ -598,7 +617,7 @@ export const AppProvider = (props) => {
 		}
 		skill.bonus = state.charAttributes.filter((attribute) => {return attribute.name === skill.supSkill})[0].bonus + modifier
 	}
-	
+	//sessionStorage.setItem('current-state', JSON.stringify(state))
 	return (
 		<AppContext.Provider
 			value={{
