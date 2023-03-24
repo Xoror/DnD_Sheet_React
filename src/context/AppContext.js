@@ -258,7 +258,8 @@ export const AppReducer = (state, action) => {
 			}
 		case 'EDIT_ACTION':
 			action.type = 'Done'
-			if(action.id === "Actions") {				
+			if(action.id === "Actions") {
+				console.log(action.payload)			
 				let testIndex = state.actions.indexOf(state.actions.filter(action1 => {return isEqualsJson(action1, action.previous)})[0])
 				state.actions[testIndex] = action.payload
 			}

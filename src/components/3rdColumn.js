@@ -208,7 +208,7 @@ const FeatureBox = (props) => {
 							<Form.Control as="textarea" id="change-description" defaultValue={props.feature.description} placeholder="Enter Description"/>
 							<ButtonGroup className="mb">
 								<Button variant="success" type="submit"> Submit Changes </Button>
-								<Button variant="danger"> Discard Changes </Button>
+								<Button variant="danger" onClick={endEdit}> Discard Changes </Button>
 							</ButtonGroup >
 						</Card>
 					</Form>
@@ -257,8 +257,8 @@ const useFocus = () => {
 const Actions = (props) => {
 	const {dispatch, actions, sortedSpellList} = useContext(AppContext);
 	const [defaultValues, setDefaultValues] = useState({})
+	const [oldData, setOldData] = useState({})
 	const [editing, setEditing] = useState(false)
-
 	
 	const [show, setShow] = useState(false);
 
@@ -266,17 +266,16 @@ const Actions = (props) => {
 	//could maybe be more efficient?
 	const handleSubmit = (event) => {
 		event.preventDefault()
+		var data = {}
+		if (props.id === "Spells") {
+			data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+						scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
+		}
+		else {
+			data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
+						scaling: event.target[4].value, isProficient: event.target[5].value, damageType: event.target[6].value};
+		}
 		if(editing) {
-			var data = {}
-			var oldData = structuredClone(defaultValues)
-			if (props.id === "Spells") {
-				data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-							scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
-			}
-			else {
-				data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-							scaling: event.target[4].value, isProficient: event.target[5].value, damageType: event.target[6].value};
-			}
 			dispatch({
 				type: 'EDIT_ACTION',
 				payload: data,
@@ -293,37 +292,32 @@ const Actions = (props) => {
 				setInputFocus()
 			}
 			else {
-				var data = {}
-				if (props.id === "Spells") {
-					data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-								scaling: event.target[4].value, isPrepared: "true", damageType: event.target[6].value};
-				}
-				else {
-					data = {name: event.target[0].value, range: event.target[1].value, damage: event.target[2].value, type: event.target[3].value, 
-								scaling: event.target[4].value, isProficient: event.target[5].value === "true" ? true:false, damageType: event.target[6].value};
-				}
 				dispatch({
 					type: 'ADD_ACTION',
 					payload: data,
-					previous: oldData,
 					id: props.id
 				})
 			}
 		}
 		setDefaultValues({name: "", range: "", damage: "", type: "", scaling: "", isProficient: "", damageType: ""})
 	}
+	const handleSelectValues = (event, id) => {
+		let copy = structuredClone(defaultValues)
+		copy[id] = event.target.value
+		setDefaultValues(copy)
+	}
 	
 	return (
 		<Card bg="secondary" id="ActionsPart">
 			{props.spells ? <SpellList /> : "" }
 			{props.headers.map((header, index) => (
-				<ActionTable setEditing={setEditing} passState={setDefaultValues} offCanvas={props.offCanvas} id={props.id} key={index} header={header} bodies={props.actions.filter((action) => {return action.type === header})} spells={props.spells}/>
+				<ActionTable setOldData={setOldData} setEditing={setEditing} passState={setDefaultValues} offCanvas={props.offCanvas} id={props.id} key={index} header={header} bodies={props.actions.filter((action) => {return action.type === header})} spells={props.spells}/>
 			))}
 			<InputGroup.Text> {editing ? ("Currently editing: " + defaultValues.name) : (props.spells ? "Add New Spell" : "Add New Action/Bonus Action/etc:") } </InputGroup.Text>
 			<Form onSubmit={handleSubmit}>
 				<InputGroup>
 					
-						<Form.Control ref={inputRef} required defaultValue={defaultValues.name} placeholder="Name" aria-label="Name" aria-describedby="name"/>
+						<Form.Control ref={inputRef} required defaultValue={defaultValues.name} placeholder="Name" aria-label="Name"/>
 						<Overlay target={inputRef.current} show={show} placement="top">
 						  <Tooltip id="overlay-example">
 								Please enter unique Name.
@@ -334,13 +328,13 @@ const Actions = (props) => {
 					<Form.Control required defaultValue={defaultValues.damage} placeholder="Damage" aria-label="damage-dice" aria-describedby="damage-dice"/>
 				</InputGroup>
 				<InputGroup>
-					<Form.Select required value={defaultValues.type} aria-label="action-type-select">
+					<Form.Select required value={defaultValues.type} aria-label="action-type-select" onChange={event => handleSelectValues(event, "type")}>
 						{props.id === "Actions" ? <option key="0" value="">Choose Action Type</option>:<option key="0" value="">Choose Spell Slot</option>}
 						{props.options.map((option1, index) => 
-							<option key={index} value={option1}>{option1}</option>
+							<option key={index+1} value={option1}>{option1}</option>
 						)}
 					</Form.Select>
-					<Form.Select required value={defaultValues.scaling} aria-label="scaling-attribute">
+					<Form.Select required value={defaultValues.scaling} aria-label="scaling-attribute" onChange={event => handleSelectValues(event, "scaling")}>
 						<option value="">Choose Scaling Attribute</option>
 						<option value="Strength">Strength</option>
 						<option value="Dexterity">Dexterity</option>
@@ -354,12 +348,12 @@ const Actions = (props) => {
 				<InputGroup>
 					{props.spells ? 
 					""
-					: <Form.Select required value={defaultValues.isProficient} type="boolean" aria-label="is-proficient">
+					: <Form.Select required value={defaultValues.isProficient} type="boolean" aria-label="is-proficient" onChange={event => handleSelectValues(event, "isProficient")}> 
 						<option value="">Is proficient?</option>
 						<option value={true}>Yes</option>
 						<option value={false}>No</option>
 					</Form.Select> }
-					<Form.Select required value={defaultValues.damageType} aria-label="damage-type">
+					<Form.Select required value={defaultValues.damageType} aria-label="damage-type" onChange={event => handleSelectValues(event, "damageType")}>
 						<option value="">Choose Damage Type</option>
 						<option value="Bludgeoning">Bludgeoning</option>
 						<option value="Slashing">Slashing</option>
@@ -408,6 +402,7 @@ const ActionTable = (props) => {
 	}
 	const startEdit = (event, body) => {
 		props.passState(body)
+		props.setOldData(body)
 		props.setEditing(true)
 	}
 	return (
@@ -490,10 +485,10 @@ const Inventory = (props) => {
 	
 	const [editing, setEditing] = useState(false)
 	const [defaultValues, setDefaultValues] = useState({})
+	const [oldData, setOldData] = useState({})
 	
 	const handleSubmit = (event) => {
 		event.preventDefault();
-		var oldData = structuredClone(defaultValues)
 		if(editing) {
 			var data = {name: event.target[0].value, type: event.target[1].value, qty: event.target[2].value, worth: event.target[3].value, 
 							weight: event.target[4].value, isEquipped: event.target[5].value === "true" ? true:false};
@@ -514,18 +509,23 @@ const Inventory = (props) => {
 		}
 		setDefaultValues({name: "", type: "", qty: "", worth: "", weight: "", isEquipped: ""})
 	}
+	const handleSelectValues = (event, id) => {
+		let copy = structuredClone(defaultValues)
+		copy[id] = event.target.value
+		setDefaultValues(copy)
+	}
 	
 	const headers = ["Weapon", "Armor", "Misc"]
 	return (
 		<Card bg="secondary" id="Inventory">
 			{headers.map((header, index) => (
-				<InventoryTable setEditing={setEditing} setDefaultValues={setDefaultValues} key={index} header={header} bodies={inventory.filter((item) => {return item.type === header})}/>
+				<InventoryTable setOldData={setOldData} setEditing={setEditing} setDefaultValues={setDefaultValues} key={index} header={header} bodies={inventory.filter((item) => {return item.type === header})}/>
 			))}
 			<InputGroup.Text> {editing ? ("Currently editing: " + defaultValues.name) : "Add New Item" } </InputGroup.Text> 
 			<Form onSubmit={handleSubmit}>
 				<InputGroup>
 					<Form.Control defaultValue={defaultValues.name} required placeholder="Name" aria-label="Name" aria-describedby="name"/>
-					<Form.Select value={defaultValues.type} required aria-label="item-type-select">
+					<Form.Select value={defaultValues.type} required aria-label="item-type-select" onChange={event => handleSelectValues(event, "type")}>
 						<option value="">Choose Item Type</option>
 						<option value="Weapon">Weapon</option>
 						<option value="Armor">Armor</option>
@@ -538,7 +538,7 @@ const Inventory = (props) => {
 					<Form.Control defaultValue={defaultValues.weight} required placeholder="Weight" aria-label="Weight" aria-describedby="Weight"/>
 				</InputGroup>
 				<InputGroup>
-					<Form.Select type="boolean" value={defaultValues.isEquipped} required aria-label="is-wearing">
+					<Form.Select type="boolean" value={defaultValues.isEquipped} required aria-label="is-wearing" onChange={event => handleSelectValues(event, "isEquipped")}>
 						<option value="">Is wearing?</option>
 						<option value={true}>Yes</option>
 						<option value={false}>No</option>
@@ -560,6 +560,7 @@ const InventoryTable = (props) => {
 	}
 	const startEdit = (event, body) => {
 		props.setDefaultValues(body)
+		props.setOldData(body)
 		props.setEditing(true)
 	}
 	const handleEquipped = (event, body) => {
