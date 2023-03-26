@@ -18,7 +18,7 @@
 	;
 }
 .prepared-check input[type="checkbox"]:hover {
-	background-color: #858c925;
+	background-color: #858925;
 	border: 0.15em solid lightgrey;
 }
 .prepared-check input[type="checkbox"]:checked::before {
@@ -29,4 +29,12 @@
 	right: 4px;
 	top: -3.5px;
 	/*align-content: auto;*/
+}
+.fancy-border {
+	border-image-slice: 42 42 42 42;
+	border-image-width: 21px 21px 21px 21px;
+	border-image-outset: 0px 0px 0px 0px;
+	border-image-repeat: round round;
+	border-image-source: url("https://mdn.github.io/css-examples/tools/border-image-generator/border-image-6.svg");
+	border-style: solid; 
 }
